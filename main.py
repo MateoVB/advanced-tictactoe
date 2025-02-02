@@ -197,8 +197,9 @@ class Game:
             Button(center_x, 450, button_width, button_height, "Player vs AI (Hard)")
         ]
 
-        # Create back to menu button
+        # Create back to menu and reset buttons
         self.back_button = Button(20, 20, 200, 50, "Back to Menu")
+        self.reset_button = Button(WINDOW_SIZE - 220, 20, 200, 50, "Reset Game")
         
         # Animation properties
         self.cell_alphas = [[AnimatedValue(0, 0) for _ in range(3)] for _ in range(3)]
@@ -382,13 +383,14 @@ class Game:
         rotated_rect = rotated_surface.get_rect(center=(WINDOW_SIZE//2, WINDOW_SIZE//2))
         screen.blit(rotated_surface, rotated_rect)
 
-        # Draw back to menu button
+        # Draw back to menu and reset buttons
         self.back_button.draw(screen)
+        self.reset_button.draw(screen)
 
         # Draw game status with improved visibility
         if self.winner is not None:
             if self.winner == 0:
-                status = "It's a tie!"
+                status = "It's a Tie!"
                 status_color = STATUS_TEXT_COLOR
             else:
                 winner_symbol = 'X' if self.winner == 1 else 'O'
@@ -440,6 +442,11 @@ class Game:
                 self.state = "menu"
                 self.reset()
                 return
+            
+            # Handle reset button click
+            if self.reset_button.handle_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN, {'pos': pos})):
+                self.reset()
+                return
 
             # Handle game board clicks
             if self.winner is None:  # Only allow moves if game is not over
@@ -471,12 +478,13 @@ class Game:
             self.board_rotation.animate_to(random.uniform(-2, 2))
             self.board_scale.animate_to(1.05)
             
-            # Check for winner
+            # Check for winner or tie
             winner = self.check_winner()
-            if winner:
+            if winner is not None:  # This includes both win (1 or 2) and tie (0)
                 self.winner = winner
-                self.winning_line = self.get_winning_line()
-                self.status_alpha.animate_to(255)  # Fade in the winner status
+                if winner != 0:  # Only set winning line if it's not a tie
+                    self.winning_line = self.get_winning_line()
+                self.status_alpha.animate_to(255)  # Fade in the winner/tie status
                 # Add victory particles
                 for _ in range(50):
                     x = random.randint(0, WINDOW_SIZE)
@@ -688,7 +696,7 @@ class Game:
             if all(np.diag(self.board) == player) or all(np.diag(np.fliplr(self.board)) == player):
                 return player
         
-        # Check for tie
+        # Check for tie (board is full)
         if np.all(self.board != 0):
             return 0
             
@@ -757,17 +765,18 @@ class Game:
                                     button.scale.animate_to(1.0)
                                     button.hover_glow.animate_to(0)  # Fade out glow
                     elif self.state == "game":
-                        # Update back button hover state
-                        was_hovered = self.back_button.is_hovered
-                        self.back_button.is_hovered = self.back_button.rect.collidepoint(mouse_pos)
-                        if self.back_button.is_hovered != was_hovered:
-                            if self.back_button.is_hovered:
-                                self.back_button.scale.animate_to(1.1)
-                                self.back_button.hover_glow.animate_to(255)  # Fade in glow
-                                self.add_particles(self.back_button.rect.centerx, self.back_button.rect.centery, GRID_COLOR)
-                            else:
-                                self.back_button.scale.animate_to(1.0)
-                                self.back_button.hover_glow.animate_to(0)  # Fade out glow
+                        # Update back and reset button hover states
+                        for button in [self.back_button, self.reset_button]:
+                            was_hovered = button.is_hovered
+                            button.is_hovered = button.rect.collidepoint(mouse_pos)
+                            if button.is_hovered != was_hovered:
+                                if button.is_hovered:
+                                    button.scale.animate_to(1.1)
+                                    button.hover_glow.animate_to(255)  # Fade in glow
+                                    self.add_particles(button.rect.centerx, button.rect.centery, GRID_COLOR)
+                                else:
+                                    button.scale.animate_to(1.0)
+                                    button.hover_glow.animate_to(0)  # Fade out glow
                         
                         # Update board hover state
                         offset = (WINDOW_SIZE - BOARD_SIZE) // 2

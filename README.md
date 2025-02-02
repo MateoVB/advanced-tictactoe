@@ -12,6 +12,7 @@ A modern implementation of the classic Tic Tac Toe game with advanced features:
 
 ### Contributor
 **Mateo Velarde**
+**mjvelardeberrios@college.harvard.edu**
 
 ### Project Timeline
 - Total Development Time: 30 min
